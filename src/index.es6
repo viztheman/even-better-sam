@@ -15,6 +15,7 @@ const buf32 = SamBuffer;
  * @param {Number}  [options.speed]    Default 72.
  * @param {Number}  [options.mouth]    Default 128.
  * @param {Number}  [options.throat]   Default 128.
+ * @param {String}  [options.dictfile] Default undefined.
  *
  * @constructor
  */
@@ -23,7 +24,7 @@ function SamJs (options) {
 
   const ensurePhonetic = (text, phonetic) => {
     if (!(phonetic || opts.phonetic)) {
-      return convert(text);
+      return convert(text, opts.dictfile);
     }
     return text.toUpperCase();
   }

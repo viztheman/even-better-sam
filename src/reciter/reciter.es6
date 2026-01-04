@@ -298,7 +298,7 @@ const rules2 = tables.rules2.split('|').map(reciterRule);
  *
  * @return {boolean|string}
  */
-export function TextToPhonemes (input) {
+export function TextToPhonemes (input, dictfile) {
   return (function () {
     const text = ' ' + input.toUpperCase();
 
@@ -344,7 +344,35 @@ export function TextToPhonemes (input) {
             //36683: BRK
             return false;
           }
-          // go to the right rules for this character.
+          // check our indexed master dictionary
+          if (dictfile && text.length >= (inputPos + 3)) {
+            const index = text.substr(inputPos, 3).split('');
+            process.env.DEBUG_SAM && console.log(`index: ${index}`);
+            let ptr = dictfile[index[0]];
+            ptr = ptr && ptr[index[1]];
+
+            let node = ptr && ptr[index[2]];
+
+            if (Array.isArray(node) && node.length > 0) {
+              process.env.DEBUG_SAM && console.log('Index found');
+              if (typeof node[0][0] === 'string') {
+                process.env.DEBUG_SAM && console.log('Index not compiled, compiling lazily...');
+                // Lazily compile our master dictionary rules.
+                //
+                ptr[index[2]] = node.map((rule) => reciterRule(rule));
+                ptr = ptr[index[2]];
+                process.env.DEBUG_SAM && console.log(`Compile successful: ${ptr.length} entries`);
+              }
+
+              const found = ptr.some((rule) => {
+                return rule(text, inputPos, successCallback);
+              });
+              process.env.DEBUG_SAM && console.log('Rule found and applied');
+              if (found) continue;
+            }
+          }
+          // otherwise fallback to original engine
+          process.env.DEBUG_SAM && console.log('Index not found');
           rules[currentChar].some((rule) => {
             return rule(text, inputPos, successCallback);
           });

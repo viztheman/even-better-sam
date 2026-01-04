@@ -3,7 +3,7 @@
  *
  * A Javascript port of "SAM Software Automatic Mouth".
  *
- * (c) 2017-2020 Christian Schiffler
+ * (c) 2017-2026 Christian Schiffler
  *
  * @link(https://github.com/discordier/sam)
  *
@@ -2459,11 +2459,10 @@ function Renderer(phonemes, pitch, mouth, throat, speed, singmode) {
 
     // Removed sine table stored a pre calculated sine wave but in modern CPU, we can calculate inline.
     var sinus = function (x) {
-      return Math.sin(2*Math.PI*(x/256)) * 127 | 0;
-      // return ((Math.sin(
-      //   (2*Math.PI)*
-      //   (x/255)
-      // )*128 | 0)/16|0)*16;
+      return ((Math.sin(
+        (2*Math.PI)*
+        (x/255)
+      )*128 | 0)/16|0)*16;
     };
 
     var speedcounter = speed;

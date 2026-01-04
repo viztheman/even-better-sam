@@ -3,7 +3,7 @@
  *
  * A Javascript port of "SAM Software Automatic Mouth".
  *
- * (c) 2017-2020 Christian Schiffler
+ * (c) 2017-2026 Christian Schiffler
  *
  * @link(https://github.com/discordier/sam)
  *
@@ -1023,7 +1023,7 @@ var rules2$1 = rules2.split('|').map(reciterRule);
  *
  * @return {boolean|string}
  */
-function TextToPhonemes (input) {
+function TextToPhonemes (input, dictfile) {
   return (function () {
     var text = ' ' + input.toUpperCase();
 
@@ -1069,7 +1069,35 @@ function TextToPhonemes (input) {
             //36683: BRK
             return false;
           }
-          // go to the right rules for this character.
+          // check our indexed master dictionary
+          if (dictfile && text.length >= (inputPos + 3)) {
+            var index = text.substr(inputPos, 3).split('');
+             console.log(("index: " + index));
+            var ptr = dictfile[index[0]];
+            ptr = ptr && ptr[index[1]];
+
+            var node = ptr && ptr[index[2]];
+
+            if (Array.isArray(node) && node.length > 0) {
+               console.log('Index found');
+              if (typeof node[0][0] === 'string') {
+                 console.log('Index not compiled, compiling lazily...');
+                // Lazily compile our master dictionary rules.
+                //
+                ptr[index[2]] = node.map(function (rule) { return reciterRule(rule); });
+                ptr = ptr[index[2]];
+                 console.log(("Compile successful: " + (ptr.length) + " entries"));
+              }
+
+              var found = ptr.some(function (rule) {
+                return rule(text, inputPos, successCallback);
+              });
+               console.log('Rule found and applied');
+              if (found) { continue; }
+            }
+          }
+          // otherwise fallback to original engine
+           console.log('Index not found');
           rules$1[currentChar].some(function (rule) {
             return rule(text, inputPos, successCallback);
           });
@@ -3464,11 +3492,10 @@ function Renderer(phonemes, pitch, mouth, throat, speed, singmode) {
 
     // Removed sine table stored a pre calculated sine wave but in modern CPU, we can calculate inline.
     var sinus = function (x) {
-      return Math.sin(2*Math.PI*(x/256)) * 127 | 0;
-      // return ((Math.sin(
-      //   (2*Math.PI)*
-      //   (x/255)
-      // )*128 | 0)/16|0)*16;
+      return ((Math.sin(
+        (2*Math.PI)*
+        (x/255)
+      )*128 | 0)/16|0)*16;
     };
 
     var speedcounter = speed;
@@ -3659,6 +3686,7 @@ var buf32 = SamBuffer;
  * @param {Number}  [options.speed]    Default 72.
  * @param {Number}  [options.mouth]    Default 128.
  * @param {Number}  [options.throat]   Default 128.
+ * @param {String}  [options.dictfile] Default undefined.
  *
  * @constructor
  */
@@ -3669,7 +3697,7 @@ function SamJs (options) {
 
   var ensurePhonetic = function (text, phonetic) {
     if (!(phonetic || opts.phonetic)) {
-      return convert(text);
+      return convert(text, opts.dictfile);
     }
     return text.toUpperCase();
   };
