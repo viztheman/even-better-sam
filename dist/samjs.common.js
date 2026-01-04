@@ -785,7 +785,7 @@ var isOneOf = function (c, list) {
  * @param {String} ruleString 'xxx(yyy)zzz=foobar' 'xxx(yyy)zzz' is the source value, 'foobar' is the destination value.
  * @return {result}
  */
-function reciterRule (ruleString) {
+function reciterRule (ruleString, debug) {
   var splitted = ruleString.split('=');
   var
     // Must pop and join here because of rule for '=' itself.
@@ -997,7 +997,7 @@ function reciterRule (ruleString) {
    */
   var result = function (text, inputPos, callback) {
     if (matches(text, inputPos)) {
-      {
+      if (debug) {
         console.log((source + " -> " + target));
       }
       callback(target, match.length);
@@ -1011,12 +1011,7 @@ function reciterRule (ruleString) {
 
 // Map all rules and generate processors from them.
 var rules$1 = {};
-rules.split('|').map(function (rule) {
-  var r = reciterRule(rule), c= r.c;
-  rules$1[c] = rules$1[c] || [];
-  rules$1[c].push(r);
-});
-var rules2$1 = rules2.split('|').map(reciterRule);
+var rules2$1 = [];
 
 /**
  * Convert the text to a phoneme string.
@@ -1025,7 +1020,20 @@ var rules2$1 = rules2.split('|').map(reciterRule);
  *
  * @return {boolean|string}
  */
-function TextToPhonemes (input, dictfile) {
+function TextToPhonemes (input, dictfile, debug) {
+  if (Object.keys(rules$1).length === 0) {
+    rules.split('|').map(function (rule) {
+      var r = reciterRule(rule, debug), c= r.c;
+      rules$1[c] = rules$1[c] || [];
+      rules$1[c].push(r);
+    });
+  }
+  if (rules2$1.length === 0) {
+    rules2$1 = rules2.split('|').map(function (rule) {
+      return reciterRule(rule, debug);
+    });
+  }
+
   return (function () {
     var text = ' ' + input.toUpperCase();
 
@@ -1043,7 +1051,7 @@ function TextToPhonemes (input, dictfile) {
 
     var c = 0;
     while ((inputPos < text.length) && (c++ < 10000)) {
-      {
+      if (debug) {
         var tmp = text.toLowerCase();
         console.log(
           ("processing \"" + (tmp.substr(0, inputPos)) + "%c" + (tmp[inputPos].toUpperCase()) + "%c" + (tmp.substr(inputPos + 1)) + "\""),
@@ -1074,32 +1082,25 @@ function TextToPhonemes (input, dictfile) {
           // check our indexed master dictionary
           if (dictfile && text.length >= (inputPos + 3)) {
             var index = text.substr(inputPos, 3).split('');
-             console.log(("index: " + index));
             var ptr = dictfile[index[0]];
             ptr = ptr && ptr[index[1]];
 
             var node = ptr && ptr[index[2]];
 
             if (Array.isArray(node) && node.length > 0) {
-               console.log('Index found');
               if (typeof node[0][0] === 'string') {
-                 console.log('Index not compiled, compiling lazily...');
                 // Lazily compile our master dictionary rules.
                 //
-                ptr[index[2]] = node.map(function (rule) { return reciterRule(rule); });
-                ptr = ptr[index[2]];
-                 console.log(("Compile successful: " + (ptr.length) + " entries"));
+                node = ptr[index[2]] = node.map(function (rule) { return reciterRule(rule); });
               }
 
-              var found = ptr.some(function (rule) {
+              var found = node.some(function (rule) {
                 return rule(text, inputPos, successCallback);
               });
-               console.log('Rule found and applied');
               if (found) { continue; }
             }
           }
           // otherwise fallback to original engine
-           console.log('Index not found');
           rules$1[currentChar].some(function (rule) {
             return rule(text, inputPos, successCallback);
           });
@@ -1623,9 +1624,9 @@ function wild_match (sign1) {
  *
  * @return {undefined}
  */
-function Parser1(input, addPhoneme, addStress) {
+function Parser1(input, addPhoneme, addStress, debug) {
   for (var srcPos=0;srcPos<input.length;srcPos++) {
-    {
+    if (debug) {
       var tmp = input.toLowerCase();
       console.log(
         ("processing \"" + (tmp.substr(0, srcPos)) + "%c" + (tmp.substr(srcPos, 2).toUpperCase()) + "%c" + (tmp.substr(srcPos + 2)) + "\""),
@@ -1755,7 +1756,7 @@ var FLAG_UNVOICED_STOPCONS  = 0x0001;
  *
  * @return undefined
  */
-function Parser2(insertPhoneme, setPhoneme, getPhoneme, getStress) {
+function Parser2(insertPhoneme, setPhoneme, getPhoneme, getStress, debug) {
   /**
    * Rewrites:
    *  'UW' => 'UX' if alveolar flag set on previous phoneme.
@@ -1770,20 +1771,20 @@ function Parser2(insertPhoneme, setPhoneme, getPhoneme, getStress) {
       case 53: {
         // ALVEOLAR flag set?
         if (phonemeHasFlag(getPhoneme(pos - 1), FLAG_ALVEOLAR)) {
-          { console.log((pos + " RULE: <ALVEOLAR> UW -> <ALVEOLAR> UX")); }
+          if (debug) { console.log((pos + " RULE: <ALVEOLAR> UW -> <ALVEOLAR> UX")); }
           setPhoneme(pos, 16); // UX
         }
         break;
       }
       // 'CH' Example: CHEW
       case 42: {
-        { console.log((pos + " RULE: CH -> CH CH+1")); }
+        if (debug) { console.log((pos + " RULE: CH -> CH CH+1")); }
         insertPhoneme(pos + 1, 43, getStress(pos)); // '**'
         break;
       }
       // 'J*' Example: JAY
       case 44: {
-        { console.log((pos + " RULE: J -> J J+1")); }
+        if (debug) { console.log((pos + " RULE: J -> J J+1")); }
         insertPhoneme(pos + 1, 45, getStress(pos)); // '**'
         break;
       }
@@ -1791,7 +1792,7 @@ function Parser2(insertPhoneme, setPhoneme, getPhoneme, getStress) {
   };
 
   var changeAX = function (position, suffix) {
-    {
+    if (debug) {
       console.log((position + " RULE: " + (PhonemeNameTable[getPhoneme(position)]) + " -> AX " + (PhonemeNameTable[suffix])));
     }
     setPhoneme(position, 13); // 'AX'
@@ -1811,7 +1812,7 @@ function Parser2(insertPhoneme, setPhoneme, getPhoneme, getStress) {
       // <DIPHTHONG ENDING WITH WX> -> <DIPHTHONG ENDING WITH WX> WX
       // <DIPHTHONG NOT ENDING WITH WX> -> <DIPHTHONG NOT ENDING WITH WX> YX
       // Example: OIL, COW
-      {
+      if (debug) {
         console.log(
           !phonemeHasFlag(phoneme, FLAG_DIP_YX)
             ? (pos + " RULE: insert WX following diphthong NOT ending in IY sound")
@@ -1850,7 +1851,7 @@ function Parser2(insertPhoneme, setPhoneme, getPhoneme, getStress) {
       if (!getPhoneme(pos+1)) { // If following phoneme is a pause, get next
         phoneme = getPhoneme(pos+2);
         if (phoneme !== END && phonemeHasFlag(phoneme, FLAG_VOWEL) && getStress(pos+2)) {
-          {
+          if (debug) {
             console.log(((pos+2) + " RULE: Insert glottal stop between two stressed vowels with space between them"));
           }
           insertPhoneme(pos+2, 31, 0); // 31 = 'Q'
@@ -1866,20 +1867,20 @@ function Parser2(insertPhoneme, setPhoneme, getPhoneme, getStress) {
       switch (priorPhoneme) {
         case pT: {
           // Example: TRACK
-          { console.log((pos + " RULE: T* R* -> CH R*")); }
+          if (debug) { console.log((pos + " RULE: T* R* -> CH R*")); }
           setPhoneme(pos - 1, 42); // 'T*' 'R*' -> 'CH' 'R*'
           break;
         }
         case pD: {
           // Example: DRY
-          { console.log((pos + " RULE: D* R* -> J* R*")); }
+          if (debug) { console.log((pos + " RULE: D* R* -> J* R*")); }
           setPhoneme(pos - 1, 44); // 'J*'
           break;
         }
         default: {
           if (phonemeHasFlag(priorPhoneme, FLAG_VOWEL)) {
             // Example: ART
-            { console.log((pos + " <VOWEL> R* -> <VOWEL> RX")); }
+            if (debug) { console.log((pos + " <VOWEL> R* -> <VOWEL> RX")); }
             setPhoneme(pos, 18); // 'RX'
           }
         }
@@ -1890,7 +1891,7 @@ function Parser2(insertPhoneme, setPhoneme, getPhoneme, getStress) {
     // 'L*'
     if ((phoneme === 24) && phonemeHasFlag(priorPhoneme, FLAG_VOWEL)) {
       // Example: ALL
-      { console.log((pos + " <VOWEL> L* -> <VOWEL> LX")); }
+      if (debug) { console.log((pos + " <VOWEL> L* -> <VOWEL> LX")); }
       setPhoneme(pos, 19); // 'LX'
       continue;
     }
@@ -1899,7 +1900,7 @@ function Parser2(insertPhoneme, setPhoneme, getPhoneme, getStress) {
       // Can't get to fire -
       //       1. The G -> GX rule intervenes
       //       2. Reciter already replaces GS -> GZ
-      { console.log((pos + " G S -> G Z")); }
+      if (debug) { console.log((pos + " G S -> G Z")); }
       setPhoneme(pos, 38);
       continue;
     }
@@ -1912,7 +1913,7 @@ function Parser2(insertPhoneme, setPhoneme, getPhoneme, getStress) {
       // If diphthong ending with YX, move continue processing next phoneme
       if (!phonemeHasFlag(phoneme$1, FLAG_DIP_YX) && (phoneme$1 !== END)) {
         // replace G with GX and continue processing next phoneme
-        {
+        if (debug) {
           console.log(
             (pos + " RULE: G <VOWEL OR DIPTHONG NOT ENDING WITH IY> -> GX <VOWEL OR DIPTHONG NOT ENDING WITH IY>")
           );
@@ -1930,7 +1931,7 @@ function Parser2(insertPhoneme, setPhoneme, getPhoneme, getStress) {
       // If at end, replace current phoneme with KX
       if (!phonemeHasFlag(Y, FLAG_DIP_YX) || Y === END) {
         // VOWELS AND DIPHTHONGS ENDING WITH IY SOUND flag set?
-        {
+        if (debug) {
           console.log((pos + " K <VOWEL OR DIPTHONG NOT ENDING WITH IY> -> KX <VOWEL OR DIPTHONG NOT ENDING WITH IY>"));
         }
         setPhoneme(pos, 75);
@@ -1948,7 +1949,7 @@ function Parser2(insertPhoneme, setPhoneme, getPhoneme, getStress) {
       //   'S*' 'UM' -> 'S*' '**'
       //   'S*' 'UN' -> 'S*' '**'
       // Examples: SPY, STY, SKY, SCOWL
-      {
+      if (debug) {
         console.log((pos + " RULE: S* " + (PhonemeNameTable[phoneme]) + " -> S* " + (PhonemeNameTable[phoneme-12])));
       }
       setPhoneme(pos, phoneme - 12);
@@ -1969,7 +1970,7 @@ function Parser2(insertPhoneme, setPhoneme, getPhoneme, getStress) {
           phoneme = getPhoneme(pos + 2);
         }
         if (phonemeHasFlag(phoneme, FLAG_VOWEL) && !getStress(pos+1)) {
-          {
+          if (debug) {
             console.log((pos + " Soften T or D following vowel or ER and preceding a pause -> DX"));
           }
           setPhoneme(pos, 30);
@@ -1978,7 +1979,7 @@ function Parser2(insertPhoneme, setPhoneme, getPhoneme, getStress) {
       continue;
     }
 
-    {
+    if (debug) {
       console.log((pos + ": " + (PhonemeNameTable[phoneme])));
     }
   } // while
@@ -2001,8 +2002,8 @@ function Parser2(insertPhoneme, setPhoneme, getPhoneme, getStress) {
  *
  * @return undefined
  */
-function AdjustLengths(getPhoneme, setLength, getLength) {
-  {
+function AdjustLengths(getPhoneme, setLength, getLength, debug) {
+  if (debug) {
     console.log("AdjustLengths()");
   }
 
@@ -2032,7 +2033,7 @@ function AdjustLengths(getPhoneme, setLength, getLength) {
       if(!phonemeHasFlag(getPhoneme(position), FLAG_FRICATIVE) || phonemeHasFlag(getPhoneme(position), FLAG_VOICED$1)) {
         var A = getLength(position);
         // change phoneme length to (length * 1.5) + 1
-        {
+        if (debug) {
           console.log(
             position + ' RULE: Lengthen <!FRICATIVE> or <VOICED> ' +
             PhonemeNameTable[getPhoneme(position)] +
@@ -2062,7 +2063,7 @@ function AdjustLengths(getPhoneme, setLength, getLength) {
         // 'RX' or 'LX'?
         if (((phoneme === 18) || (phoneme === 19)) && phonemeHasFlag(getPhoneme(++position$1), FLAG_CONSONANT$1)) {
           // followed by consonant?
-          {
+          if (debug) {
             console.log(
               loopIndex +
               ' RULE: <VOWEL ' +
@@ -2088,7 +2089,7 @@ function AdjustLengths(getPhoneme, setLength, getLength) {
         if(matchesBitmask(flags, FLAG_UNVOICED_STOPCONS)) {
           // RULE: <VOWEL> <UNVOICED PLOSIVE>
           // <VOWEL> <P*, T*, K*, KX>
-          {
+          if (debug) {
             console.log((loopIndex + " <VOWEL> <UNVOICED PLOSIVE> - decrease vowel by 1/8th"));
           }
           var A$1 = getLength(loopIndex);
@@ -2100,7 +2101,7 @@ function AdjustLengths(getPhoneme, setLength, getLength) {
       // RULE: <VOWEL> <VOWEL or VOICED CONSONANT>
       // <VOWEL> <IY, IH, EH, AE, AA, AH, AO, UH, AX, IX, ER, UX, OH, RX, LX, WX, YX, WH, R*, L*, W*,
       //          Y*, M*, N*, NX, Q*, Z*, ZH, V*, DH, J*, EY, AY, OY, AW, OW, UW, B*, D*, G*, GX>
-      {
+      if (debug) {
         console.log((loopIndex + " RULE: <VOWEL> <VOWEL or VOICED CONSONANT> - increase vowel by 1/4 + 1"));
       }
       // increase length
@@ -2123,7 +2124,7 @@ function AdjustLengths(getPhoneme, setLength, getLength) {
       // is next phoneme a stop consonant?
       if (phoneme !== END && phonemeHasFlag(phoneme, FLAG_STOPCONS)) {
         // B*, D*, G*, GX, P*, T*, K*, KX
-        {
+        if (debug) {
           console.log((position$1 + " RULE: <NASAL> <STOP CONSONANT> - set nasal = 5, consonant = 6"));
         }
         setLength(position$1, 6); // set stop consonant length to 6
@@ -2146,7 +2147,7 @@ function AdjustLengths(getPhoneme, setLength, getLength) {
       // if another stop consonant, process.
       if (phoneme !== END && phonemeHasFlag(phoneme, FLAG_STOPCONS)) {
         // RULE: <STOP CONSONANT> {optional silence} <STOP CONSONANT>
-        {
+        if (debug) {
           console.log(
             (position$1 + " RULE: <STOP CONSONANT> {optional silence} <STOP CONSONANT> - shorten both to 1/2 + 1")
           );
@@ -2168,7 +2169,7 @@ function AdjustLengths(getPhoneme, setLength, getLength) {
       // RULE: <STOP CONSONANT> <LIQUID>
       //       Decrease <LIQUID> by 2
       // prior phoneme is a stop consonant
-      {
+      if (debug) {
         console.log((position$1 + " RULE: <STOP CONSONANT> <LIQUID> - decrease by 2"));
       }
       // decrease the phoneme length by 2 frames (20 ms)
@@ -2328,7 +2329,7 @@ function ProlongPlosiveStopConsonantsCode41240(getPhoneme, insertPhoneme, getStr
  *
  * @return {Array|Boolean} The parsed data.
  */
-function Parser (input) {
+function Parser (input, debug) {
   if (!input) {
     return false;
   }
@@ -2341,7 +2342,7 @@ function Parser (input) {
     return (pos === phonemeindex.length - 1) ? END : phonemeindex[pos]
   };
   var setPhoneme = function (pos, value) {
-    {
+    if (debug) {
       console.log((pos + " CHANGE: " + (PhonemeNameTable[phonemeindex[pos]]) + " -> " + (PhonemeNameTable[value])));
     }
     phonemeindex[pos]  = value;
@@ -2356,7 +2357,7 @@ function Parser (input) {
    * @return {undefined}
    */
   var insertPhoneme = function (pos, value, stressValue, length) {
-    {
+    if (debug) {
       console.log((pos + " INSERT: " + (PhonemeNameTable[value])));
     }
     for(var i = phonemeindex.length - 1; i >= pos; i--) {
@@ -2370,7 +2371,7 @@ function Parser (input) {
   };
   var getStress = function (pos) { return stress[pos] | 0; };
   var setStress = function (pos, stressValue) {
-    {
+    if (debug) {
       console.log(
         (pos + " \"" + (PhonemeNameTable[phonemeindex[pos]]) + "\" SET STRESS: " + (stress[pos]) + " -> " + stressValue)
       );
@@ -2379,7 +2380,7 @@ function Parser (input) {
   };
   var getLength = function (pos) { return phonemeLength[pos] | 0; };
   var setLength = function (pos, length) {
-    {
+    if (debug) {
       console.log(
         (pos + " \"" + (PhonemeNameTable[phonemeindex[pos]]) + "\" SET LENGTH: " + (phonemeLength[pos]) + " -> " + length)
       );
@@ -2406,23 +2407,24 @@ function Parser (input) {
       phonemeindex[pos++] = value;
     },
     function (value) {
-      {
+      if (debug) {
         if ((value & 128) !== 0) {
           throw new Error('Got the flag 0x80, see CopyStress() and SetPhonemeLength() comments!');
         }
       }
       stress[pos - 1] = value; /* Set stress for prior phoneme */
-    }
+    },
+    debug
   );
   phonemeindex[pos] = END;
 
-  {
+  if (debug) {
     PrintPhonemes(phonemeindex, phonemeLength, stress);
   }
-  Parser2(insertPhoneme, setPhoneme, getPhoneme, getStress);
+  Parser2(insertPhoneme, setPhoneme, getPhoneme, getStress, debug);
   CopyStress(getPhoneme, getStress, setStress);
   SetPhonemeLength(getPhoneme, getStress, setLength);
-  AdjustLengths(getPhoneme, setLength, getLength);
+  AdjustLengths(getPhoneme, setLength, getLength, debug);
   ProlongPlosiveStopConsonantsCode41240(getPhoneme, insertPhoneme, getStress);
 
   for (var i = 0;i<phonemeindex.length;i++) {
@@ -2435,7 +2437,7 @@ function Parser (input) {
 
   InsertBreath(getPhoneme, setPhoneme, insertPhoneme, getStress, getLength, setLength);
 
-  {
+  if (debug) {
     PrintPhonemes(phonemeindex, phonemeLength, stress);
   }
 
@@ -3314,7 +3316,7 @@ function CreateOutputBuffer(buffersize) {
  *
  * @return Uint8Array
  */
-function Renderer(phonemes, pitch, mouth, throat, speed, singmode) {
+function Renderer(phonemes, pitch, mouth, throat, speed, singmode, debug) {
   pitch = (pitch === undefined) ? 64 : pitch & 0xFF;
   mouth = (mouth === undefined) ? 128 : mouth & 0xFF;
   throat = (throat === undefined) ? 128 : throat & 0xFF;
@@ -3421,7 +3423,7 @@ function Renderer(phonemes, pitch, mouth, throat, speed, singmode) {
       amplitude[2][i$1] = amplitudeRescale[amplitude[2][i$1]];
     }
 
-    {
+    if (debug) {
       PrintOutput(pitches, frequency, amplitude, sampledConsonantFlag);
     }
 
@@ -3667,12 +3669,12 @@ function SamBuffer (input, options) {
 function SamProcess (input, options) {
   if ( options === void 0 ) options = {};
 
-  var parsed = Parser(input);
+  var parsed = Parser(input, options.debug);
   if (false === parsed) {
     return false;
   }
 
-  return Renderer(parsed, options.pitch, options.mouth, options.throat, options.speed, options.singmode);
+  return Renderer(parsed, options.pitch, options.mouth, options.throat, options.speed, options.singmode, options.debug);
 }
 
 var convert = TextToPhonemes;
@@ -3699,7 +3701,7 @@ function SamJs (options) {
 
   var ensurePhonetic = function (text, phonetic) {
     if (!(phonetic || opts.phonetic)) {
-      return convert(text, opts.dictfile);
+      return convert(text, opts.dictfile, opts.debug);
     }
     return text.toUpperCase();
   };

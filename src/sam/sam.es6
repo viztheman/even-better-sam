@@ -68,10 +68,10 @@ export function SamBuffer (input, options) {
  * @return {Uint8Array|Boolean}
  */
 export function SamProcess (input, options = {}) {
-  const parsed = Parser(input);
+  const parsed = Parser(input, options.debug);
   if (false === parsed) {
     return false;
   }
 
-  return Renderer(parsed, options.pitch, options.mouth, options.throat, options.speed, options.singmode);
+  return Renderer(parsed, options.pitch, options.mouth, options.throat, options.speed, options.singmode, options.debug);
 }

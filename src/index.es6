@@ -24,7 +24,7 @@ function SamJs (options) {
 
   const ensurePhonetic = (text, phonetic) => {
     if (!(phonetic || opts.phonetic)) {
-      return convert(text, opts.dictfile);
+      return convert(text, opts.dictfile, opts.debug);
     }
     return text.toUpperCase();
   }

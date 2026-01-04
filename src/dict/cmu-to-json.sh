@@ -2,17 +2,28 @@
 INFILE="$1"
 OUTFILE="$2"
 
-echo "{" >"$OUTFILE"
-
 tr -d '\r' <"$INFILE" |
     grep -Ea "^[A-Za-z][A-Za-z']{2,} " |
     sort |
-    sed 's@  @\t@' |
-    sed 's@ @@g' |
+    sed -E "s:\s+:\t:" |
+    sed -E 's:[ ]::g' |
     tr '0' '4' |
     tr '1' '5' |
-    tr '2' '6' |
-    awk '{print "\""$1"\": \""$2"\",";}' >>"$OUTFILE"
+    tr '2' '6' >intermediate.txt
 
-echo "}" >>"$OUTFILE"
-sed -i ':a;N;$!ba;s/,\n}/\n}/g' "$OUTFILE"
+cut -f 1 intermediate.txt >keys.txt
+
+cut -f 2 intermediate.txt |
+    sed -E "s:H{2,}:H:g" |
+    sed -E "s:JH:J:g" |
+    sed -E "s:^H:/H:" >values.txt
+
+echo '{' >$OUTFILE
+
+paste keys.txt values.txt |
+    awk '{print "\""$1"\": \""$2"\",";}' >>$OUTFILE
+
+sed -i '$s/,$//' $OUTFILE
+echo '}' >>$OUTFILE
+
+rm -f intermediate.txt keys.txt values.txt

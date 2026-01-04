@@ -17,7 +17,7 @@ import ProlongPlosiveStopConsonantsCode41240 from './prolong-plosive-stop-conson
  *
  * @return {Array|Boolean} The parsed data.
  */
-export default function Parser (input) {
+export default function Parser (input, debug) {
   if (!input) {
     return false;
   }
@@ -30,7 +30,7 @@ export default function Parser (input) {
     return (pos === phonemeindex.length - 1) ? END : phonemeindex[pos]
   };
   const setPhoneme = (pos, value) => {
-    if (process.env.DEBUG_SAM === true) {
+    if (debug) {
       console.log(`${pos} CHANGE: ${PhonemeNameTable[phonemeindex[pos]]} -> ${PhonemeNameTable[value]}`);
     }
     phonemeindex[pos]  = value;
@@ -45,7 +45,7 @@ export default function Parser (input) {
    * @return {undefined}
    */
   const insertPhoneme = (pos, value, stressValue, length) => {
-    if (process.env.DEBUG_SAM === true) {
+    if (debug) {
       console.log(`${pos} INSERT: ${PhonemeNameTable[value]}`);
     }
     for(let i = phonemeindex.length - 1; i >= pos; i--) {
@@ -59,7 +59,7 @@ export default function Parser (input) {
   };
   const getStress = (pos) => stress[pos] | 0;
   const setStress = (pos, stressValue) => {
-    if (process.env.DEBUG_SAM === true) {
+    if (debug) {
       console.log(
         `${pos} "${PhonemeNameTable[phonemeindex[pos]]}" SET STRESS: ${stress[pos]} -> ${stressValue}`
       );
@@ -68,7 +68,7 @@ export default function Parser (input) {
   };
   const getLength = (pos) => phonemeLength[pos] | 0;
   const setLength = (pos, length) => {
-    if (process.env.DEBUG_SAM === true) {
+    if (debug) {
       console.log(
         `${pos} "${PhonemeNameTable[phonemeindex[pos]]}" SET LENGTH: ${phonemeLength[pos]} -> ${length}`
       );
@@ -95,23 +95,24 @@ export default function Parser (input) {
       phonemeindex[pos++] = value;
     },
     (value) => {
-      if (process.env.DEBUG_SAM === true) {
+      if (debug) {
         if ((value & 128) !== 0) {
           throw new Error('Got the flag 0x80, see CopyStress() and SetPhonemeLength() comments!');
         }
       }
       stress[pos - 1] = value; /* Set stress for prior phoneme */
-    }
+    },
+    debug
   );
   phonemeindex[pos] = END;
 
-  if (process.env.DEBUG_SAM === true) {
+  if (debug) {
     PrintPhonemes(phonemeindex, phonemeLength, stress);
   }
-  Parser2(insertPhoneme, setPhoneme, getPhoneme, getStress);
+  Parser2(insertPhoneme, setPhoneme, getPhoneme, getStress, debug);
   CopyStress(getPhoneme, getStress, setStress);
   SetPhonemeLength(getPhoneme, getStress, setLength);
-  AdjustLengths(getPhoneme, setLength, getLength);
+  AdjustLengths(getPhoneme, setLength, getLength, debug);
   ProlongPlosiveStopConsonantsCode41240(getPhoneme, insertPhoneme, getStress);
 
   for (let i = 0;i<phonemeindex.length;i++) {
@@ -124,7 +125,7 @@ export default function Parser (input) {
 
   InsertBreath(getPhoneme, setPhoneme, insertPhoneme, getStress, getLength, setLength);
 
-  if (process.env.DEBUG_SAM === true) {
+  if (debug) {
     PrintPhonemes(phonemeindex, phonemeLength, stress);
   }
 

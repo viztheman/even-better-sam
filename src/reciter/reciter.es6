@@ -56,7 +56,7 @@ const isOneOf = (c, list) => {
  * @param {String} ruleString 'xxx(yyy)zzz=foobar' 'xxx(yyy)zzz' is the source value, 'foobar' is the destination value.
  * @return {result}
  */
-function reciterRule (ruleString) {
+function reciterRule (ruleString, debug) {
   const splitted = ruleString.split('=');
   const
     // Must pop and join here because of rule for '=' itself.
@@ -270,7 +270,7 @@ function reciterRule (ruleString) {
    */
   const result = function (text, inputPos, callback) {
     if (matches(text, inputPos)) {
-      if (process.env.DEBUG_SAM === true) {
+      if (debug) {
         console.log(`${source} -> ${target}`)
       }
       callback(target, match.length);
@@ -284,12 +284,7 @@ function reciterRule (ruleString) {
 
 // Map all rules and generate processors from them.
 const rules = {};
-tables.rules.split('|').map((rule) => {
-  const r = reciterRule(rule), c= r.c;
-  rules[c] = rules[c] || [];
-  rules[c].push(r);
-});
-const rules2 = tables.rules2.split('|').map(reciterRule);
+let rules2 = [];
 
 /**
  * Convert the text to a phoneme string.
@@ -298,7 +293,20 @@ const rules2 = tables.rules2.split('|').map(reciterRule);
  *
  * @return {boolean|string}
  */
-export function TextToPhonemes (input, dictfile) {
+export function TextToPhonemes (input, dictfile, debug) {
+  if (Object.keys(rules).length === 0) {
+    tables.rules.split('|').map((rule) => {
+      const r = reciterRule(rule, debug), c= r.c;
+      rules[c] = rules[c] || [];
+      rules[c].push(r);
+    });
+  }
+  if (rules2.length === 0) {
+    rules2 = tables.rules2.split('|').map((rule) => {
+      return reciterRule(rule, debug);
+    });
+  }
+
   return (function () {
     const text = ' ' + input.toUpperCase();
 
@@ -316,7 +324,7 @@ export function TextToPhonemes (input, dictfile) {
 
     let c = 0;
     while ((inputPos < text.length) && (c++ < 10000)) {
-      if (process.env.DEBUG_SAM === true) {
+      if (debug) {
         const tmp = text.toLowerCase();
         console.log(
           `processing "${tmp.substr(0, inputPos)}%c${tmp[inputPos].toUpperCase()}%c${tmp.substr(inputPos + 1)}"`,
@@ -347,32 +355,25 @@ export function TextToPhonemes (input, dictfile) {
           // check our indexed master dictionary
           if (dictfile && text.length >= (inputPos + 3)) {
             const index = text.substr(inputPos, 3).split('');
-            process.env.DEBUG_SAM && console.log(`index: ${index}`);
             let ptr = dictfile[index[0]];
             ptr = ptr && ptr[index[1]];
 
             let node = ptr && ptr[index[2]];
 
             if (Array.isArray(node) && node.length > 0) {
-              process.env.DEBUG_SAM && console.log('Index found');
               if (typeof node[0][0] === 'string') {
-                process.env.DEBUG_SAM && console.log('Index not compiled, compiling lazily...');
                 // Lazily compile our master dictionary rules.
                 //
-                ptr[index[2]] = node.map((rule) => reciterRule(rule));
-                ptr = ptr[index[2]];
-                process.env.DEBUG_SAM && console.log(`Compile successful: ${ptr.length} entries`);
+                node = ptr[index[2]] = node.map((rule) => reciterRule(rule));
               }
 
-              const found = ptr.some((rule) => {
+              const found = node.some((rule) => {
                 return rule(text, inputPos, successCallback);
               });
-              process.env.DEBUG_SAM && console.log('Rule found and applied');
               if (found) continue;
             }
           }
           // otherwise fallback to original engine
-          process.env.DEBUG_SAM && console.log('Index not found');
           rules[currentChar].some((rule) => {
             return rule(text, inputPos, successCallback);
           });

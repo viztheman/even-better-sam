@@ -19,7 +19,7 @@ import CreateOutputBuffer from './output-buffer.es6';
  *
  * @return Uint8Array
  */
-export default function Renderer(phonemes, pitch, mouth, throat, speed, singmode) {
+export default function Renderer(phonemes, pitch, mouth, throat, speed, singmode, debug) {
   pitch = (pitch === undefined) ? 64 : pitch & 0xFF;
   mouth = (mouth === undefined) ? 128 : mouth & 0xFF;
   throat = (throat === undefined) ? 128 : throat & 0xFF;
@@ -122,7 +122,7 @@ export default function Renderer(phonemes, pitch, mouth, throat, speed, singmode
       amplitude[2][i] = amplitudeRescale[amplitude[2][i]];
     }
 
-    if (process.env.DEBUG_SAM === true) {
+    if (debug) {
       PrintOutput(pitches, frequency, amplitude, sampledConsonantFlag);
     }
     if (process.env.NODE_ENV === 'karma-test') {
