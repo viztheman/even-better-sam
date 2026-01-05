@@ -30,6 +30,9 @@ function build (builds) {
       if (built < total) {
         next()
       }
+      else {
+        buildDict()
+      }
     }).catch(logError)
   };
 
@@ -81,6 +84,9 @@ function buildEntry (config) {
   return new Promise((resolve, reject) => {
     build().then(() => resolve()).catch(reason => reject(reason))
   })
+}
+
+function buildDict() {
 }
 
 function write (dest, code, zip) {
