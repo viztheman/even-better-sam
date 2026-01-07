@@ -1,7 +1,7 @@
 const fs = require('fs');
 const readline = require('readline');
 
-const RgxValidLine = /^[a-z][a-z']{2,}/i;
+const RgxValidLine = /^[0-9a-z][a-z']{2,} /i;
 
 function checkCmdLine() {
     if (process.argv.length >= 4)
@@ -20,9 +20,9 @@ function extract(line) {
         .replace(/H{2,}/g, 'H')
         .replace(/JH/g, 'J')
         .replace(/^H/, '/H')
-        .replace('0', '4')
-        .replace('1', '5')
-        .replace('2', '6');
+        .replace(/0/g, '1')
+        .replace(/1/g, '5')
+        .replace(/2/g, '6');
 
     return {key, value};
 }
