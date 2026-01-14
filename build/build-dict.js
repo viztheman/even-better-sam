@@ -1,7 +1,7 @@
 const fs = require('fs');
 const readline = require('readline');
 
-const RgxValidLine = /^[0-9a-z][a-z']{2,} /i;
+const RgxValidLine = /^[0-9a-z'][a-z']{2,} /i;
 
 function checkCmdLine() {
     if (process.argv.length >= 4)
@@ -13,14 +13,14 @@ function checkCmdLine() {
 }
 
 function extract(line) {
-    const tokens = line.split(' ');
+    const tokens = line.split(/\s+/);
     const key = tokens[0].toUpperCase();
 
     const value = tokens.slice(1).join('').toUpperCase()
         .replace(/H{2,}/g, 'H')
         .replace(/JH/g, 'J')
         .replace(/^H/, '/H')
-        .replace(/0/g, '1')
+        .replace(/0/g, '4')
         .replace(/1/g, '5')
         .replace(/2/g, '6');
 
@@ -69,10 +69,14 @@ async function main() {
                 continue;
             
             const {key, value} = extract(line);
+            const entry = ` (${key}) =${value}`;
             const ptr = fetchIndex(dictionary, key);
+            const index = ptr.indexOf(entry);
 
-            if (!ptr.find(x => x.indexOf(key) >= 0))
-                ptr.push(` (${key}) =${value}`);
+            if (index >= 0)
+                ptr[index] = entry;
+            else
+                ptr.push(entry);
         }
 
         reader.close();
