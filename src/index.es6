@@ -1,6 +1,7 @@
 import {PlayBuffer, RenderBuffer} from './util/player.es6'
 import TextToPhonemes from './reciter/reciter.es6';
 import {SamProcess, SamBuffer} from './sam/sam.es6';
+import Speaker from 'audio-speaker';
 
 const convert = TextToPhonemes;
 const buf8 = SamProcess;
@@ -21,6 +22,8 @@ const buf32 = SamBuffer;
  */
 function SamJs (options) {
   const opts = options || {};
+  const _this = this;
+  let speaker = null;
 
   const ensurePhonetic = (text, phonetic) => {
     if (!(phonetic || opts.phonetic)) {
@@ -62,7 +65,13 @@ function SamJs (options) {
    * @return {Promise}
    */
   this.speak = (text, phonetic) => {
-    return PlayBuffer(this.buf32(text, phonetic));
+	if (typeof AudioContext !== 'undefined')
+		return PlayBuffer(this.buf32(text, phonetic));
+  	if (!speaker)
+		speaker = Speaker({sampleRate: 22050, channels: 1, bitDepth: 8});
+
+	const buf = this.buf8(text, phonetic);
+	return new Promise(res => speaker(buf, res));
   }
 
   /**
@@ -73,13 +82,24 @@ function SamJs (options) {
    *
    * @return void
    */
-  this.download = (text, phonetic) => {
-    RenderBuffer(this.buf8(text, phonetic));
+  this.download = function(filename, text, phonetic) {
+	if (arguments.length == 1) {
+		text = filename;
+		filename = null;
+	}
+	else if (arguments.length == 2 && typeof text !== 'string') {
+		phonetic = text;
+		text = filename;
+		filename = null;
+	}
+
+    RenderBuffer(filename, _this.buf8(text, phonetic));
   }
 }
 
 SamJs.buf8 = buf8;
 SamJs.buf32 = buf32;
 SamJs.convert = convert;
+SamJs.shutdown = () => speaker && speaker(null);
 
 export default SamJs;

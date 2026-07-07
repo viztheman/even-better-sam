@@ -23,7 +23,9 @@
     "test-browser": "karma start",
     "test-browser2": "karma start --single-run"
   },
-  "dependencies": {},
+  "dependencies": {
+    "audio-speaker": "^2.3.1"
+  },
   "devDependencies": {
     "@babel/core": "^7.6.0",
     "@babel/plugin-transform-runtime": "^7.6.0",

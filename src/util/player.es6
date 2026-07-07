@@ -1,3 +1,4 @@
+import fs from 'node:fs';
 import {text2Uint8Array, Uint32ToUint8Array, Uint16ToUint8Array} from '../util/util.es6';
 
 /**
@@ -70,8 +71,8 @@ export function UInt8ArrayToFloat32Array (buffer) {
  *
  * @return void
  */
-export function RenderBuffer (audiobuffer) {
-  let filename = 'sam.wav';
+export function RenderBuffer (filename, audiobuffer) {
+  filename = filename || 'sam.wav';
 
   // Calculate buffer size.
   const realbuffer = new Uint8Array(
@@ -114,6 +115,11 @@ export function RenderBuffer (audiobuffer) {
   write(text2Uint8Array('data'));
   write(Uint32ToUint8Array(audiobuffer.length)); // buffer length
   write(audiobuffer);
+
+  if (typeof window === 'undefined') {
+    fs.writeFileSync(filename, realbuffer, 'binary');
+    return;
+  }
 
   const blob = new Blob([realbuffer], {type: 'audio/vnd.wave'});
 

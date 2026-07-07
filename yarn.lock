@@ -2,6 +2,31 @@
 # yarn lockfile v1
 
 
+"@audio/speaker-darwin-arm64@>=2.0.0":
+  version "2.0.4"
+  resolved "https://registry.yarnpkg.com/@audio/speaker-darwin-arm64/-/speaker-darwin-arm64-2.0.4.tgz#648e7e37ef03caf68cdc55ad4add3c4d1fb43794"
+  integrity sha512-j8Wyut1MqCENCBwqfgROkztHY60mTETv90Aw5axCYdPUCM3aHB/G9AzIimwitVnapaY2BFjt8CtNH5bvtummYQ==
+
+"@audio/speaker-darwin-x64@>=2.0.0":
+  version "2.0.4"
+  resolved "https://registry.yarnpkg.com/@audio/speaker-darwin-x64/-/speaker-darwin-x64-2.0.4.tgz#ee1270f180bcc42cf7c2fabf67b77416e4710c67"
+  integrity sha512-AvZEAy5DhLhGRdwCn/aaqDkONWmNXt4GOsetxzml8lmD518+d9VwHRKKUgWFPJ8o2g0kKGr7MC+XnUMN97RvOg==
+
+"@audio/speaker-linux-arm64@>=2.0.0":
+  version "2.0.4"
+  resolved "https://registry.yarnpkg.com/@audio/speaker-linux-arm64/-/speaker-linux-arm64-2.0.4.tgz#cecea5e2bfbe107a96ea595d3834704463ade2fe"
+  integrity sha512-aCCOBGwcg3Wg9mCi5docXHBzf6b0C/jT1mh4P+7ZQAMnepmEezKiAisdPksflW4mCO95tDEcjgIi5bG/7MtT8g==
+
+"@audio/speaker-linux-x64@>=2.0.0":
+  version "2.0.4"
+  resolved "https://registry.yarnpkg.com/@audio/speaker-linux-x64/-/speaker-linux-x64-2.0.4.tgz#e6f0366085b36a546630cd5035d8a5a4ada8a8a7"
+  integrity sha512-yi1M0Y5RLKhY/Gw2MGVcgPCaa/C2hJ4/Kd4O4tv8klB78yD5XW4m4FpWvEq32o18SUlC075J3JKrKrMOS1a5NA==
+
+"@audio/speaker-win32-x64@>=2.0.0":
+  version "2.0.4"
+  resolved "https://registry.yarnpkg.com/@audio/speaker-win32-x64/-/speaker-win32-x64-2.0.4.tgz#d1a13bbf95b57963f301e80f2436d855396b75bc"
+  integrity sha512-2q8qsXhIx5vrv9h9G4H1HC114T+FL5WG8Y3BOeyAeTXHyh4ci3vR4JMGuplrwo6DnhywY0fb93uEp97TnlM3pA==
+
 "@babel/code-frame@^7.8.3":
   version "7.8.3"
   resolved "https://registry.yarnpkg.com/@babel/code-frame/-/code-frame-7.8.3.tgz#33e25903d7481181534e12ec0a25f16b6fcf419e"
@@ -1026,6 +1051,17 @@ atob@^2.1.2:
   version "2.1.2"
   resolved "https://registry.yarnpkg.com/atob/-/atob-2.1.2.tgz#6d9517eb9e030d2436666651e86bd9f6f13533c9"
   integrity sha512-Wm6ukoaOGJi/73p/cl2GvLjTI5JM1k/O14isD73YML8StrH/7/lRFgmg8nICZgD3bZZvjwCGxtMOD3wWNAu8cg==
+
+audio-speaker@^2.3.1:
+  version "2.3.1"
+  resolved "https://registry.yarnpkg.com/audio-speaker/-/audio-speaker-2.3.1.tgz#81e47ff331a63bcef216769d8ac22884b4627a54"
+  integrity sha512-l5FXrKBu1UC6p0FxRFejBwxkDOFLeUbtQMe9kRGXERLkNr+Id3USShTldESHzGQbT1eAF/JWMzdVWHxry22TXA==
+  optionalDependencies:
+    "@audio/speaker-darwin-arm64" ">=2.0.0"
+    "@audio/speaker-darwin-x64" ">=2.0.0"
+    "@audio/speaker-linux-arm64" ">=2.0.0"
+    "@audio/speaker-linux-x64" ">=2.0.0"
+    "@audio/speaker-win32-x64" ">=2.0.0"
 
 babel-cli@^6.26.0:
   version "6.26.0"
