@@ -102,4 +102,5 @@ SamJs.buf32 = buf32;
 SamJs.convert = convert;
 SamJs.shutdown = () => speaker && speaker(null);
 
-export default SamJs;
+if (typeof exports === 'object' && typeof module !== 'undefined')
+	module.exports = SamJs;
