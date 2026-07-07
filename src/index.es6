@@ -100,7 +100,6 @@ function SamJs (options) {
 SamJs.buf8 = buf8;
 SamJs.buf32 = buf32;
 SamJs.convert = convert;
-SamJs.shutdown = () => speaker && speaker(null);
 
-if (typeof exports === 'object' && typeof module !== 'undefined')
+if (typeof module !== 'undefined' && typeof module.exports === 'object')
 	module.exports = SamJs;
